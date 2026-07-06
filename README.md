@@ -8,7 +8,7 @@
   <a href="https://www.apache.org/licenses/LICENSE-2.0"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License"></a>
   <a href="https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html"><img src="https://img.shields.io/badge/Java-17%2B-orange.svg" alt="Java 17+"></a>
   <a href="https://spring.io/projects/spring-boot"><img src="https://img.shields.io/badge/Spring_Boot-3.x-brightgreen.svg" alt="Spring Boot 3.x"></a>
-  <!-- <a href="https://central.sonatype.com/artifact/io.flowwarden/flowwarden-redis"><img src="https://img.shields.io/maven-central/v/io.flowwarden/flowwarden-redis.svg" alt="Maven Central"></a> -->
+  <a href="https://central.sonatype.com/artifact/io.flowwarden/flowwarden-redis"><img src="https://img.shields.io/maven-central/v/io.flowwarden/flowwarden-redis.svg" alt="Maven Central"></a>
 </p>
 
 ---
