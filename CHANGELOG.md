@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Removed
+
+### Fixed
+
+### Deprecated
+
+### Security
+
+## [1.0.0-rc.1] — 2026-07-06
+
+### Added
 - Initial bootstrap of the FlowWarden Redis satellite library.
 - `RedisLockService` and `ReactiveRedisLockService` — Redis-backed implementations of the `LockService` SPI, using a Hash payload (`instanceId`, `acquiredAt`, `expiresAt`) and Lua scripts for atomic acquire / renew / release.
 - `RedisCheckpointStore` and `ReactiveRedisCheckpointStore` — Redis-backed implementations of the `CheckpointStore` SPI, using a Hash payload with base64-encoded BSON resume tokens. Targeted `HSET` preserves the dual-token semantics from the core (`saveSeen` does not overwrite the processed pair, `saveProcessed` does not overwrite the seen pair).
@@ -25,4 +39,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-[Unreleased]: https://github.com/flowwarden-io/flowwarden-redis/compare/main...HEAD
+[Unreleased]: https://github.com/flowwarden-io/flowwarden-redis/compare/v1.0.0-rc.1...HEAD
+[1.0.0-rc.1]: https://github.com/flowwarden-io/flowwarden-redis/releases/tag/v1.0.0-rc.1
