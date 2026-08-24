@@ -8,8 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Checkpoint hashes carry the new `lastHeartbeatTimestamp` field (round-tripped by `save`/`findByStreamName` in both stores) — the resume-point health signal introduced by stream-core's idle heartbeat.
+- `saveSeen(stream, token, timestamp, heartbeatTimestamp)` and `saveHeartbeat(stream, timestamp)` overridden in both stores as single multi-field `HSET`s — atomic by construction, stronger than the SPI's non-atomic two-write default.
+- `resetAfterHistoryLost` overridden with a Lua script (shared by both stores): the dead-processed guard is evaluated atomically with the removal — the race-free at-least-once coordination point the SPI requires from backends that can express conditional writes.
 
 ### Changed
+- `flowwarden-stream-core` / testkit baseline: 1.0.0-rc.4 (the inherited `CheckpointStoreContractTest` grows eight heartbeat/reset contract tests, all passing).
 
 ### Removed
 
