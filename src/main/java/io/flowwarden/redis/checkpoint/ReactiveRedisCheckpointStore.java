@@ -28,6 +28,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import static io.flowwarden.redis.checkpoint.RedisCheckpointStore.F_HEARTBEAT_TIMESTAMP;
 import static io.flowwarden.redis.checkpoint.RedisCheckpointStore.F_INSTANCE;
 import static io.flowwarden.redis.checkpoint.RedisCheckpointStore.F_METADATA;
 import static io.flowwarden.redis.checkpoint.RedisCheckpointStore.F_PRESENT;
@@ -67,6 +68,7 @@ public class ReactiveRedisCheckpointStore implements CheckpointStore {
         putIfNotNull(hash, F_SEEN_TIMESTAMP, encodeInstant(checkpoint.lastSeenTimestamp()));
         putIfNotNull(hash, F_PROCESSED_TOKEN, BsonTokens.encode(checkpoint.lastProcessedToken()));
         putIfNotNull(hash, F_PROCESSED_TIMESTAMP, encodeInstant(checkpoint.lastProcessedTimestamp()));
+        putIfNotNull(hash, F_HEARTBEAT_TIMESTAMP, encodeInstant(checkpoint.lastHeartbeatTimestamp()));
         putIfNotNull(hash, F_METADATA, encodeMetadata(checkpoint.metadata()));
 
         String key = checkpointKey(checkpoint.streamName());
@@ -91,6 +93,7 @@ public class ReactiveRedisCheckpointStore implements CheckpointStore {
                 decodeInstant(stringField(raw, F_SEEN_TIMESTAMP)),
                 BsonTokens.decode(stringField(raw, F_PROCESSED_TOKEN)),
                 decodeInstant(stringField(raw, F_PROCESSED_TIMESTAMP)),
+                decodeInstant(stringField(raw, F_HEARTBEAT_TIMESTAMP)),
                 decodeMetadata(stringField(raw, F_METADATA))
         ));
     }
@@ -111,6 +114,41 @@ public class ReactiveRedisCheckpointStore implements CheckpointStore {
         updates.put(F_PROCESSED_TOKEN, BsonTokens.encode(token));
         updates.put(F_PROCESSED_TIMESTAMP, encodeInstant(timestamp));
         ops.putAll(checkpointKey(streamName), updates).block();
+    }
+
+    @Override
+    public void saveSeen(String streamName, BsonDocument token, Instant timestamp,
+                         Instant heartbeatTimestamp) {
+        // One multi-field HSET — the atomic position+confirmation write the
+        // SPI asks for (its default is a non-atomic two-write fallback).
+        ReactiveHashOperations<String, String, String> ops = template.opsForHash();
+        Map<String, String> updates = new HashMap<>();
+        updates.put(F_SEEN_TOKEN, BsonTokens.encode(token));
+        updates.put(F_SEEN_TIMESTAMP, encodeInstant(timestamp));
+        updates.put(F_HEARTBEAT_TIMESTAMP, encodeInstant(heartbeatTimestamp));
+        ops.putAll(checkpointKey(streamName), updates).block();
+    }
+
+    @Override
+    public void saveHeartbeat(String streamName, Instant heartbeatTimestamp) {
+        template.<String, String>opsForHash().put(checkpointKey(streamName),
+                F_HEARTBEAT_TIMESTAMP, encodeInstant(heartbeatTimestamp)).block();
+    }
+
+    @Override
+    public void resetAfterHistoryLost(String streamName, BsonDocument freshSeenToken,
+                                      BsonDocument expectedDeadProcessed, Instant timestamp) {
+        // Same Lua as the sync store: the dead-processed guard is evaluated
+        // atomically with the removal.
+        template.execute(
+                        org.springframework.data.redis.core.script.RedisScript.of(
+                                CheckpointScripts.RESET_AFTER_HISTORY_LOST, Long.class),
+                        java.util.List.of(checkpointKey(streamName)),
+                        java.util.List.of(
+                                RedisCheckpointStore.encodeOrSentinel(expectedDeadProcessed),
+                                RedisCheckpointStore.encodeOrSentinel(freshSeenToken),
+                                encodeInstant(timestamp)))
+                .blockLast();
     }
 
     @Override
