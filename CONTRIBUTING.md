@@ -31,6 +31,8 @@ cd flowwarden-redis
 
 > **Note:** You do not need a local Redis installation. Testcontainers automatically provisions a Redis server during integration tests.
 
+> **Note:** When `main` temporarily depends on a `-SNAPSHOT` of `flowwarden-stream-core` (between core releases), resolve it either by configuring a GitHub PAT with `read:packages` for server id `github` in your `~/.m2/settings.xml`, or by building the core locally: `git clone https://github.com/flowwarden-io/flowwarden-stream-core && cd flowwarden-stream-core && ./mvnw install -DskipTests`.
+
 ## Architecture Constraints
 
 Before writing code, please be aware of the following design points:

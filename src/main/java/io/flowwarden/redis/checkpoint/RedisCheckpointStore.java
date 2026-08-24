@@ -46,6 +46,7 @@ public class RedisCheckpointStore implements CheckpointStore {
     static final String F_SEEN_TIMESTAMP = "lastSeenTimestamp";
     static final String F_PROCESSED_TOKEN = "lastProcessedToken";
     static final String F_PROCESSED_TIMESTAMP = "lastProcessedTimestamp";
+    static final String F_HEARTBEAT_TIMESTAMP = "lastHeartbeatTimestamp";
     static final String F_METADATA = "metadata";
 
     /** Presence marker — guarantees the Hash exists after {@code save} even when all
@@ -70,6 +71,7 @@ public class RedisCheckpointStore implements CheckpointStore {
         putIfNotNull(hash, F_SEEN_TIMESTAMP, encodeInstant(checkpoint.lastSeenTimestamp()));
         putIfNotNull(hash, F_PROCESSED_TOKEN, BsonTokens.encode(checkpoint.lastProcessedToken()));
         putIfNotNull(hash, F_PROCESSED_TIMESTAMP, encodeInstant(checkpoint.lastProcessedTimestamp()));
+        putIfNotNull(hash, F_HEARTBEAT_TIMESTAMP, encodeInstant(checkpoint.lastHeartbeatTimestamp()));
         putIfNotNull(hash, F_METADATA, encodeMetadata(checkpoint.metadata()));
 
         String key = checkpointKey(checkpoint.streamName());
@@ -91,6 +93,7 @@ public class RedisCheckpointStore implements CheckpointStore {
                 decodeInstant(stringField(raw, F_SEEN_TIMESTAMP)),
                 BsonTokens.decode(stringField(raw, F_PROCESSED_TOKEN)),
                 decodeInstant(stringField(raw, F_PROCESSED_TIMESTAMP)),
+                decodeInstant(stringField(raw, F_HEARTBEAT_TIMESTAMP)),
                 decodeMetadata(stringField(raw, F_METADATA))
         ));
     }
@@ -111,6 +114,44 @@ public class RedisCheckpointStore implements CheckpointStore {
         updates.put(F_PROCESSED_TOKEN, BsonTokens.encode(token));
         updates.put(F_PROCESSED_TIMESTAMP, encodeInstant(timestamp));
         ops.putAll(checkpointKey(streamName), updates);
+    }
+
+    @Override
+    public void saveSeen(String streamName, BsonDocument token, Instant timestamp,
+                         Instant heartbeatTimestamp) {
+        // One multi-field HSET — the atomic position+confirmation write the
+        // SPI asks for (its default is a non-atomic two-write fallback).
+        HashOperations<String, String, String> ops = template.opsForHash();
+        Map<String, String> updates = new HashMap<>();
+        updates.put(F_SEEN_TOKEN, BsonTokens.encode(token));
+        updates.put(F_SEEN_TIMESTAMP, encodeInstant(timestamp));
+        updates.put(F_HEARTBEAT_TIMESTAMP, encodeInstant(heartbeatTimestamp));
+        ops.putAll(checkpointKey(streamName), updates);
+    }
+
+    @Override
+    public void saveHeartbeat(String streamName, Instant heartbeatTimestamp) {
+        template.<String, String>opsForHash().put(checkpointKey(streamName),
+                F_HEARTBEAT_TIMESTAMP, encodeInstant(heartbeatTimestamp));
+    }
+
+    @Override
+    public void resetAfterHistoryLost(String streamName, BsonDocument freshSeenToken,
+                                      BsonDocument expectedDeadProcessed, Instant timestamp) {
+        // Lua: the dead-processed guard is evaluated atomically with the
+        // removal — the SPI's race-free coordination point.
+        template.execute(
+                org.springframework.data.redis.core.script.RedisScript.of(
+                        CheckpointScripts.RESET_AFTER_HISTORY_LOST, Long.class),
+                Collections.singletonList(checkpointKey(streamName)),
+                encodeOrSentinel(expectedDeadProcessed),
+                encodeOrSentinel(freshSeenToken),
+                encodeInstant(timestamp));
+    }
+
+    static String encodeOrSentinel(BsonDocument token) {
+        String encoded = BsonTokens.encode(token);
+        return encoded == null ? CheckpointScripts.NULL_SENTINEL : encoded;
     }
 
     @Override
