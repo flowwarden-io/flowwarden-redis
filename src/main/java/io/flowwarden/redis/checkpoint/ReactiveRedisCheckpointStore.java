@@ -130,6 +130,21 @@ public class ReactiveRedisCheckpointStore implements CheckpointStore {
     }
 
     @Override
+    public void saveProcessed(String streamName, BsonDocument token, Instant timestamp,
+                              Instant heartbeatTimestamp) {
+        // One multi-field HSET — the anchor write carries its heartbeat
+        // confirmation atomically. This is stream-core's hot write path
+        // (count threshold, timer and manual save all route here), so the
+        // SPI default's two round-trips and torn intermediate state matter.
+        ReactiveHashOperations<String, String, String> ops = template.opsForHash();
+        Map<String, String> updates = new HashMap<>();
+        updates.put(F_PROCESSED_TOKEN, BsonTokens.encode(token));
+        updates.put(F_PROCESSED_TIMESTAMP, encodeInstant(timestamp));
+        updates.put(F_HEARTBEAT_TIMESTAMP, encodeInstant(heartbeatTimestamp));
+        ops.putAll(checkpointKey(streamName), updates).block();
+    }
+
+    @Override
     public void saveHeartbeat(String streamName, Instant heartbeatTimestamp) {
         template.<String, String>opsForHash().put(checkpointKey(streamName),
                 F_HEARTBEAT_TIMESTAMP, encodeInstant(heartbeatTimestamp)).block();
