@@ -27,7 +27,7 @@ Both the blocking and reactive Spring Data Redis stacks are supported. Auto-conf
 <dependency>
     <groupId>io.flowwarden</groupId>
     <artifactId>flowwarden-redis</artifactId>
-    <version>1.0.0-rc.1</version>
+    <version>1.0.0-rc.2</version>
 </dependency>
 ```
 
@@ -39,7 +39,7 @@ You'll also need `flowwarden-stream-core` (the SPI provider) and `spring-boot-st
     <dependency>
       <groupId>io.flowwarden</groupId>
       <artifactId>flowwarden-bom</artifactId>
-      <version>1.0.0-rc.3</version>
+      <version>1.0.0-rc.4</version>
       <type>pom</type>
       <scope>import</scope>
     </dependency>
@@ -126,7 +126,7 @@ Acquire / renew / release on locks are executed as Lua scripts to keep the compa
 | Spring Boot | 3.2.x | 3.2.x+ |
 | Spring Data Redis | 3.2.x (via Boot BOM) | 3.2.x+ |
 | Redis Server | 6.0 | 7.x+ |
-| FlowWarden Stream Core | 1.0.0-rc.3 | 1.0.0-rc.3+ |
+| FlowWarden Stream Core | 1.0.0-rc.4 | 1.0.0-rc.4+ |
 
 ## FlowWarden Ecosystem
 

@@ -8,6 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Removed
+
+### Fixed
+
+### Deprecated
+
+### Security
+
+## [1.0.0-rc.2] — 2026-08-28
+
+### Added
+- `saveProcessed(stream, token, timestamp, heartbeatTimestamp)` overridden in both stores as a single multi-field `HSET` (processed token + timestamp + heartbeat in one write) — the atomic form of the partial write stream-core 1.0.0-rc.4 issues on every settled-anchor persistence.
 - Checkpoint hashes carry the new `lastHeartbeatTimestamp` field (round-tripped by `save`/`findByStreamName` in both stores) — the resume-point health signal introduced by stream-core's idle heartbeat.
 - `saveSeen(stream, token, timestamp, heartbeatTimestamp)` and `saveHeartbeat(stream, timestamp)` overridden in both stores as single multi-field `HSET`s — atomic by construction, stronger than the SPI's non-atomic two-write default.
 - `resetAfterHistoryLost` overridden with a Lua script (shared by both stores): the dead-processed guard is evaluated atomically with the removal — the race-free at-least-once coordination point the SPI requires from backends that can express conditional writes.
@@ -43,5 +58,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-[Unreleased]: https://github.com/flowwarden-io/flowwarden-redis/compare/v1.0.0-rc.1...HEAD
+[Unreleased]: https://github.com/flowwarden-io/flowwarden-redis/compare/v1.0.0-rc.2...HEAD
+[1.0.0-rc.2]: https://github.com/flowwarden-io/flowwarden-redis/releases/tag/v1.0.0-rc.2
 [1.0.0-rc.1]: https://github.com/flowwarden-io/flowwarden-redis/releases/tag/v1.0.0-rc.1
