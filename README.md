@@ -27,7 +27,7 @@ Both the blocking and reactive Spring Data Redis stacks are supported. Auto-conf
 <dependency>
     <groupId>io.flowwarden</groupId>
     <artifactId>flowwarden-redis</artifactId>
-    <version>1.0.0-rc.2</version>
+    <version>1.0.0-rc.3</version>
 </dependency>
 ```
 
