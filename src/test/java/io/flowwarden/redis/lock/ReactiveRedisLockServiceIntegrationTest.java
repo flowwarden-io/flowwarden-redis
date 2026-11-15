@@ -24,14 +24,18 @@ import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
+import java.time.Duration;
+
 class ReactiveRedisLockServiceIntegrationTest extends LockServiceContractTest {
+
+    private static final String KEY_PREFIX = "test:";
 
     private LettuceConnectionFactory connectionFactory;
     private ReactiveStringRedisTemplate template;
 
     @Override
     protected LockService createLockService() {
-        return new ReactiveRedisLockService(template, "test:");
+        return new ReactiveRedisLockService(template, KEY_PREFIX);
     }
 
     @Override
@@ -48,5 +52,23 @@ class ReactiveRedisLockServiceIntegrationTest extends LockServiceContractTest {
             template = new ReactiveStringRedisTemplate(connectionFactory, ctx);
         }
         connectionFactory.getConnection().serverCommands().flushDb();
+    }
+
+    /**
+     * A Redis lease is the key itself: it expires when its TTL elapses. Shorten the TTL to
+     * 1 ms and wait for the server to drop the key — the real expiry, not a simulation.
+     */
+    @Override
+    protected boolean expireLeaseInPlace(String streamName) {
+        String key = KEY_PREFIX + "lock:" + streamName;
+        template.expire(key, Duration.ofMillis(1)).block();
+        long deadline = System.nanoTime() + Duration.ofSeconds(2).toNanos();
+        while (Boolean.TRUE.equals(template.hasKey(key).block())) {
+            if (System.nanoTime() > deadline) {
+                throw new IllegalStateException("Redis did not expire " + key + " within 2s");
+            }
+            Thread.onSpinWait();
+        }
+        return true;
     }
 }

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- `flowwarden-stream-core` baseline: 1.0.0-rc.8 (from rc.7). The `CheckpointStore` and `LockService` SPIs are unchanged. The testkit's `LockServiceContractTest` gained `renew_failsIfLeaseExpired`; both lock integration tests now override `expireLeaseInPlace` so the case runs against Redis: a lease is the key itself, so `renew` on an expired lease finds no key and returns `false` — the owner goes through the leadership-loss path and re-acquires explicitly.
+
 ## [1.0.0-rc.3] — 2026-10-15
 
 ### Added
